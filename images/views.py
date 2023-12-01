@@ -32,3 +32,5 @@ def index(request):
         return HttpResponseRedirect('/accounts/login/')
 
     return render(request, 'collection/index.html')
+
+
