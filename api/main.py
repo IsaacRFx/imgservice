@@ -97,4 +97,4 @@ def webhook_notify_upload():
     return jsonify({"message": "Socket message sent"})
 
 if __name__ == "__main__":
-    socket.run(app, host="0.0.0.0", port=5000, debug=True)
+    socket.run(app, host="0.0.0.0", port=5001, debug=True, allow_unsafe_werkzeug=True)
