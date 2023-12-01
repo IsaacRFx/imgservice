@@ -82,4 +82,4 @@ ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 
 
-CMD gunicorn --bind 0.0.0.0:$PORT imgservice.wsgi -w 2 --reload
+CMD gunicorn --bind 0.0.0.0:$PORT imgservice.wsgi -w 1 --reload
