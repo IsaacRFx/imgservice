@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect, Http404
-from collection.forms import SignUpForm
+from images.forms import SignUpForm
 #import Listview
 from django.views.generic import ListView
 from django.contrib.auth import authenticate, login

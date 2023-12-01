@@ -1,2 +1,2 @@
-tailwindcss -i input.css -o ../collection/static/output.css --watch
-tailwindcss -i input.css -o ../collection/static/output.css --minify
+tailwindcss -i input.css -o ../images/static/output.css --watch
+tailwindcss -i input.css -o ../images/static/output.css --minify
