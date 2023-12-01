@@ -1,46 +1,39 @@
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
 from flask_cors import CORS
-import os
-import sys
 from decouple import config
 import boto3
 import psycopg2
 import uuid
 
-load_dotenv()
-
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*")
-
+socket = SocketIO(app, cors_allowed_origins="*")
 
 def get_db_connection():
     conn = psycopg2.connect(
-        host=os.environ.get("DB_HOST"),
-        database=os.environ.get("DB_DATABASE"),
-        user=os.environ.get("DB_USERNAME"),
-        password=os.environ.get("DB_PASSWORD"),
+        host=config("SQL_HOST"),
+        database=config("SQL_DATABASE"),
+        user=config("SQL_USER"),
+        password=config("SQL_PASSWORD"),
     )
-
     return conn
 
-@app.route("/api/image/", methods=["POST"])
+def generate_file_name(filename):
+    return uuid.uuid4().hex + "." + filename.split(".")[-1]
+
+@app.route("/api/files/", methods=["POST"])
 def upload_image():
     try:
-        file = request.files["file"]
+        file = request.files["imageFile"]
         socketId = request.form.get("socketId")
         image = file.read()
         filename = file.filename
-        filename = file_generate_name(filename)
-
-        _id = uuid.uuid4().hex
-
+        filename = generate_file_name(filename)
         s3 = boto3.client("s3")
-
-        response = s3.upload_fileobj(
+        s3.upload_fileobj(
             image,
-            os.getenv("BUCKET_NAME"),
+            config("S3_BUCKET_NAME"),
             filename,
             ExtraArgs={
                 "ACL": "public-read",
@@ -48,100 +41,60 @@ def upload_image():
                 "Metadata": {"socketId": socketId},
             },
         )
-
         conn = get_db_connection()
         cur = conn.cursor()
-
         cur.execute(
-            "INSERT INTO images (id, filename, socketId) VALUES (%s, %s, %s)",
-            (_id, filename, socketId),
+            f"INSERT INTO ImageFiles (id, filename, socketId) VALUES ({filename} {socketId})"
         )
-
-        # Commit changes
         conn.commit()
-
-        # Close connection
         cur.close()
         conn.close()
-
-        return jsonify({"message": "File uploaded successfully"})
-
+        return jsonify({"message": "Image has been uploaded successfully"})
     except Exception as e:
-        error = str(e)
-
-        print(e, sys.exc_info()[-1].tb_lineno)
-
-        return jsonify({"error": error, "status": "error"})
+        return jsonify({"error": str(e), "status": "error"})
 
 
-@app.route("/api/image/", methods=["GET"])
-def get_images():
+@app.route("/api/files/", methods=["GET"])
+def list_images():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT * FROM images;")
+        cur.execute("SELECT * FROM ImageFiles;")
         images = cur.fetchall()
 
         cur.close()
         conn.close()
 
-        images = [
-            {
-                "id": image[0],
-                "filename": image[1],
-                "socketId": image[2],
-                "url": image[3],
-            }
-            for image in images
-        ]
+        images = [{"id": image[0],"filename": image[1],"socketId": image[2],"url": image[3],} for image in images]
 
         return jsonify({"images": images})
 
     except Exception as e:
-        error = str(e)
-
-        print(e, sys.exc_info()[-1].tb_lineno)
-
-        return jsonify({"error": error, "status": "error"})
+        return jsonify({"error": str(e), "status": "error"})
 
 
-@app.route("/api/image/uploaded/", methods=["POST"])
-def uploadedImage():
+@app.route("/api/files/webhook/", methods=["POST"])
+def webhook_notify_upload():
     object_key = request.json["object_key"]
     s3_resource = boto3.client("s3")
-    bucket = os.environ.get("BUCKET_NAME")
+    bucket = config("S3_BUCKET_NAME")
     response = s3_resource.get_object(Bucket=bucket, Key=object_key)
     ResponseMetadata = response["ResponseMetadata"]
     url = f"https://{bucket}.s3.amazonaws.com/{object_key}"
-
     conn = get_db_connection()
     cur = conn.cursor()
-
-    cur.execute(
-        "UPDATE images SET url = %s WHERE filename = %s",
-        (url, object_key),
-    )
-
+    cur.execute(f"UPDATE ImageFiles SET url = {url} WHERE filename = {object_key}")
     conn.commit()
-
     cur.close()
     conn.close()
-
     socketId = ResponseMetadata.get("HTTPHeaders").get("x-amz-meta-socketid")
-    socketio.emit(
+    socket.emit(
         "image_uploaded",
-        {"object_key": object_key, "message": "File uploaded successfully"},
+        {"object_key": object_key, "message": "Image has been uploaded successfully"},
         to=socketId,
     )
-
-    return jsonify({"message": "Message emmited succesfully"})
-
-
-@socketio.on("file_uploaded")
-def handleUpload(data):
-    print(data)
-
+    return jsonify({"message": "Socket message sent"})
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socket.run(app, host="0.0.0.0", port=5000, debug=True)
