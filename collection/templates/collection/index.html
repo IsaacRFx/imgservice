@@ -1,0 +1,46 @@
+{% extends "collection/base.html" %}
+
+{% block content %}
+<div class=" flex justify-center md:mx-auto md:max-w-screen-2xl px-2">
+        {% if not user.is_authenticated %}
+        <div class="my-5 bg-slate-200 border-l-4 border-slate-500 text-slate-700 p-6" role="alert">
+          <p class="font-bold">Hola</p>
+          <p > Por favor <a class="text-sky-600 font-bold" href="/accounts/login"> inicia sesión </a> para ver esta página.</p>
+        </div>
+        {% endif %}
+</div>
+
+{% comment %} 
+create a card for an artwork, using tailwind css classes
+add a link to the artwork detail page
+{% endcomment %}
+
+<div class="flex flex-wrap justify-center md:mx-auto md:max-w-screen-2xl px-2">
+  {% for artwork in imgservice %}
+  <div class="max-w-sm rounded overflow-hidden shadow-lg m-4">
+    {% comment %} <a href="{% url 'artwork-detail' artwork.id %}"> {% endcomment %}
+      <img class="h-auto max-w-xs mx-auto" src="{{ artwork.image_url }}" alt="{{ artwork.title|title }}">
+    </a>
+    <div class="px-6 pt-4 pb-2">
+      {% if artwork.period %}
+      <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">{{ artwork.period }}</span>
+      {% endif %}
+      {% if artwork.style %}
+      <span class="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">{{ artwork.style }}</span>
+      {% endif %}
+      <details class="dropdown">
+        <summary class="m-1 btn">Agregar a ...</summary>
+        <ul class="p-2 shadow menu dropdown-content z-[1] bg-base-100 rounded-box w-52">
+          {% for collection in collections %}
+          <li>
+            <a href="/collection/artwork/add/{{artwork.id}}/{{collection.id}}" class="btn btn-ghost btn-sm rounded-btn">{{ collection.name }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
+    </div>
+  </div>
+  
+  {% endfor %}
+
+{% endblock content %}
