@@ -37,7 +37,7 @@ def upload_image():
             ExtraArgs={
                 "ACL": "public-read",
                 "ContentType": file.content_type,
-                "Metadata": {"socketId": socketId},
+                "Metadata": {"socketId": socketId, "modified": "0"},
             },
         )
         conn = get_db_connection()
@@ -90,7 +90,7 @@ def webhook_notify_upload():
     socketId = ResponseMetadata.get("HTTPHeaders").get("x-amz-meta-socketid")
     socket.emit(
         "image_uploaded",
-        {"object_key": object_key, "message": "Image has been uploaded successfully"},
+        {"object_key": object_key, "message": "Image has been uploaded successfully", "url":url},
         to=socketId,
     )
     return jsonify({"message": "Socket message sent"})
