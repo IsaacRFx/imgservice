@@ -27,12 +27,11 @@ def upload_image():
     try:
         file = request.files["imageFile"]
         socketId = request.form.get("socketId")
-        image = file.read()
         filename = file.filename
         filename = generate_file_name(filename)
         s3 = boto3.client("s3")
         s3.upload_fileobj(
-            image,
+            file,
             config("S3_BUCKET_NAME"),
             filename,
             ExtraArgs={
@@ -44,7 +43,7 @@ def upload_image():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            f"INSERT INTO ImageFiles (id, filename, socketId) VALUES ({filename} {socketId})"
+            f"INSERT INTO ImageFiles (filename, socketId) VALUES ('{filename}', '{socketId}')"
         )
         conn.commit()
         cur.close()
@@ -66,7 +65,7 @@ def list_images():
         cur.close()
         conn.close()
 
-        images = [{"id": image[0],"filename": image[1],"socketId": image[2],"url": image[3],} for image in images]
+        images = [{"id": image[0],"filename": image[1],"socketId": image[2],"url": image[3]} for image in images]
 
         return jsonify({"images": images})
 
@@ -84,7 +83,7 @@ def webhook_notify_upload():
     url = f"https://{bucket}.s3.amazonaws.com/{object_key}"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(f"UPDATE ImageFiles SET url = {url} WHERE filename = {object_key}")
+    cur.execute(f"UPDATE ImageFiles SET url = '{url}' WHERE filename = '{object_key}'")
     conn.commit()
     cur.close()
     conn.close()
