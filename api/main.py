@@ -62,7 +62,8 @@ def webhook_notify_upload():
     url = f"https://{bucket}.s3.amazonaws.com/{object_key}"
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(f"UPDATE ImageFiles SET url = '{url}' WHERE filename = '{object_key}'")
+    parsed_object_key=object_key.split('-')[0]
+    cur.execute(f"UPDATE ImageFiles SET url = '{url}' WHERE filename LIKE '{parsed_object_key}%'")
     conn.commit()
     cur.close()
     conn.close()
