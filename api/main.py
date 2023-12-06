@@ -74,6 +74,25 @@ def webhook_notify_upload():
         to=socketId,
     )
     return jsonify({"message": "Socket message sent"})
+    
+@app.route("/api/files/", methods=["GET"])
+def list_images():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM ImageFiles;")
+        images = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        images = [{"id": image[0],"filename": image[1],"socketId": image[2],"url": image[3]} for image in images]
+
+        return jsonify({"images": images})
+
+    except Exception as e:
+        return jsonify({"error": str(e), "status": "error"})
 
 if __name__ == "__main__":
     socket.run(app, host="0.0.0.0", port=5001, debug=True, allow_unsafe_werkzeug=True)
