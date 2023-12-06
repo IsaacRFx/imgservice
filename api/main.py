@@ -52,27 +52,6 @@ def upload_image():
     except Exception as e:
         return jsonify({"error": str(e), "status": "error"})
 
-
-@app.route("/api/files/", methods=["GET"])
-def list_images():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute("SELECT * FROM ImageFiles;")
-        images = cur.fetchall()
-
-        cur.close()
-        conn.close()
-
-        images = [{"id": image[0],"filename": image[1],"socketId": image[2],"url": image[3]} for image in images]
-
-        return jsonify({"images": images})
-
-    except Exception as e:
-        return jsonify({"error": str(e), "status": "error"})
-
-
 @app.route("/api/files/webhook/", methods=["POST"])
 def webhook_notify_upload():
     object_key = request.json["object_key"]
